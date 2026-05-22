@@ -1,6 +1,91 @@
--- MacKay CEO Forums — Seed SQL
--- Run in Supabase SQL Editor AFTER the first Vercel deploy creates the tables.
--- Safe to re-run — all statements use ON CONFLICT DO NOTHING / DO UPDATE.
+-- MacKay CEO Forums — Schema + Seed SQL
+-- Paste the entire file into Supabase SQL Editor and click Run.
+-- Safe to re-run — uses CREATE TABLE IF NOT EXISTS and ON CONFLICT clauses.
+
+-- ============================================================
+-- SCHEMA
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS "Partner" (
+  "id"               TEXT        NOT NULL PRIMARY KEY,
+  "name"             TEXT        NOT NULL,
+  "tier"             TEXT        NOT NULL,
+  "logoUrl"          TEXT,
+  "shortDescription" TEXT        NOT NULL,
+  "offerDetails"     TEXT,
+  "learnMoreUrl"     TEXT,
+  "active"           BOOLEAN     NOT NULL DEFAULT true,
+  "createdAt"        TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt"        TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "FormTemplate" (
+  "id"                 TEXT        NOT NULL PRIMARY KEY,
+  "name"               TEXT        NOT NULL,
+  "slug"               TEXT        NOT NULL UNIQUE,
+  "active"             BOOLEAN     NOT NULL DEFAULT true,
+  "showBookChapter"    BOOLEAN     NOT NULL DEFAULT true,
+  "showTeamNomination" BOOLEAN     NOT NULL DEFAULT true,
+  "showPartnerInquiry" BOOLEAN     NOT NULL DEFAULT true,
+  "showChairRecommend" BOOLEAN     NOT NULL DEFAULT true,
+  "showCeoNomination"  BOOLEAN     NOT NULL DEFAULT true,
+  "showRenewalIntent"  BOOLEAN     NOT NULL DEFAULT true,
+  "createdAt"          TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt"          TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "TemplateQuestion" (
+  "id"           TEXT    NOT NULL PRIMARY KEY,
+  "templateId"   TEXT    NOT NULL REFERENCES "FormTemplate"("id") ON DELETE CASCADE,
+  "questionText" TEXT    NOT NULL,
+  "order"        INTEGER NOT NULL,
+  "required"     BOOLEAN NOT NULL DEFAULT true
+);
+
+CREATE TABLE IF NOT EXISTS "TemplatePartner" (
+  "templateId" TEXT NOT NULL REFERENCES "FormTemplate"("id") ON DELETE CASCADE,
+  "partnerId"  TEXT NOT NULL REFERENCES "Partner"("id")      ON DELETE CASCADE,
+  PRIMARY KEY ("templateId", "partnerId")
+);
+
+CREATE TABLE IF NOT EXISTS "Submission" (
+  "id"                TEXT         NOT NULL PRIMARY KEY,
+  "templateId"        TEXT         NOT NULL REFERENCES "FormTemplate"("id"),
+  "email"             TEXT         NOT NULL,
+  "firstName"         TEXT         NOT NULL,
+  "lastName"          TEXT         NOT NULL,
+  "company"           TEXT,
+  "title"             TEXT,
+  "phone"             TEXT,
+  "answers"           TEXT         NOT NULL,
+  "wantsBookChapter"  BOOLEAN,
+  "teamNomineeName"   TEXT,
+  "teamNomineeTitle"  TEXT,
+  "teamNomineePhone"  TEXT,
+  "teamNomineeEmail"  TEXT,
+  "partnerInquiry"    TEXT,
+  "chairName"         TEXT,
+  "chairCompany"      TEXT,
+  "chairEmail"        TEXT,
+  "ceoNomineeName"    TEXT,
+  "ceoNomineeCompany" TEXT,
+  "ceoNomineeEmail"   TEXT,
+  "renewalIntent"     TEXT,
+  "createdAt"         TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS "SubmissionPartner" (
+  "id"            TEXT         NOT NULL PRIMARY KEY,
+  "submissionId"  TEXT         NOT NULL REFERENCES "Submission"("id") ON DELETE CASCADE,
+  "partnerId"     TEXT         NOT NULL REFERENCES "Partner"("id"),
+  "trackingToken" TEXT         NOT NULL UNIQUE,
+  "clickedAt"     TIMESTAMP(3),
+  "createdAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================
+-- SEED DATA
+-- ============================================================
 
 -- 1. Template
 INSERT INTO "FormTemplate" (id, name, slug, active, "showBookChapter", "showTeamNomination", "showPartnerInquiry", "showChairRecommend", "showCeoNomination", "showRenewalIntent", "createdAt", "updatedAt")
