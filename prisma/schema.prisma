@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Partner {
+  id               String   @id @default(cuid())
+  name             String
+  tier             String   // PLATINUM, NATIONAL, INNOVATOR
+  logoUrl          String?
+  shortDescription String
+  offerDetails     String?
+  learnMoreUrl     String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  templates          TemplatePartner[]
+  submissionPartners SubmissionPartner[]
+}
+
+model FormTemplate {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  active Boolean @default(true)
+
+  showBookChapter    Boolean @default(true)
+  showTeamNomination Boolean @default(true)
+  showPartnerInquiry Boolean @default(true)
+  showChairRecommend Boolean @default(true)
+  showCeoNomination  Boolean @default(true)
+  showRenewalIntent  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions   TemplateQuestion[]
+  partners    TemplatePartner[]
+  submissions Submission[]
+}
+
+model TemplateQuestion {
+  id           String       @id @default(cuid())
+  templateId   String
+  template     FormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  questionText String
+  order        Int
+  required     Boolean      @default(true)
+}
+
+model TemplatePartner {
+  templateId String
+  partnerId  String
+  template   FormTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  partner    Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@id([templateId, partnerId])
+}
+
+model Submission {
+  id         String       @id @default(cuid())
+  templateId String
+  template   FormTemplate @relation(fields: [templateId], references: [id])
+
+  email     String
+  firstName String
+  lastName  String
+  company   String?
+  title     String?
+  phone     String?
+
+  answers String // JSON: { questionId: "answer text" }
+
+  wantsBookChapter   Boolean?
+  teamNomineeName    String?
+  teamNomineeTitle   String?
+  teamNomineePhone   String?
+  teamNomineeEmail   String?
+  partnerInquiry     String?
+  chairName          String?
+  chairCompany       String?
+  chairEmail         String?
+  ceoNomineeName     String?
+  ceoNomineeCompany  String?
+  ceoNomineeEmail    String?
+  renewalIntent      String?
+
+  createdAt DateTime @default(now())
+
+  partners SubmissionPartner[]
+}
+
+model SubmissionPartner {
+  id            String     @id @default(cuid())
+  submissionId  String
+  submission    Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  partnerId     String
+  partner       Partner    @relation(fields: [partnerId], references: [id])
+  trackingToken String     @unique @default(cuid())
+  clickedAt     DateTime?
+  createdAt     DateTime   @default(now())
+}
