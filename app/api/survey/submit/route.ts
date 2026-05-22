@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { sanitizeText, sanitizeEmail, sanitizePhone, sanitizeLongText } from '@/lib/sanitize';
-import { resend, FROM_EMAIL, ADMIN_EMAIL } from '@/lib/resend';
+import { getResendClient, FROM_EMAIL, ADMIN_EMAIL } from '@/lib/resend';
 import { memberConfirmationHtml, adminNotificationHtml } from '@/lib/email-templates';
 
 export async function POST(request: Request) {
@@ -153,9 +153,10 @@ export async function POST(request: Request) {
   }));
 
   // Send emails (don't crash if they fail)
-  if (process.env.RESEND_API_KEY) {
+  const resendClient = getResendClient();
+  if (resendClient) {
     try {
-      await resend.emails.send({
+      await resendClient.emails.send({
         from: FROM_EMAIL,
         to: email,
         subject: 'MacKay CEO Forums — Survey Confirmation',
@@ -172,13 +173,12 @@ export async function POST(request: Request) {
     }
 
     try {
-      // Build admin answers list
       const answersForEmail = template.questions.map((q) => ({
         question: q.questionText,
         answer: sanitizedAnswers[q.id] || '',
       }));
 
-      await resend.emails.send({
+      await resendClient.emails.send({
         from: FROM_EMAIL,
         to: ADMIN_EMAIL,
         subject: `New Survey Submission — ${firstName} ${lastName} (${company || 'N/A'})`,
