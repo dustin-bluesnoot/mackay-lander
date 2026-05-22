@@ -1,0 +1,97 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { getAdminSession } from '@/lib/auth';
+
+const partners = [
+  // PLATINUM
+  { name: 'Chief Executive Group', tier: 'PLATINUM', shortDescription: 'Expand your US business by attending US-based CEO, Executive, and Business Owner events', offerDetails: 'Exclusive access to US-based CEO, Executive, and Business Owner networking events to expand your US business reach', learnMoreUrl: 'https://chiefexecutivegroup.com' },
+  { name: 'TD Insurance Private Client Advice', tier: 'PLATINUM', shortDescription: 'Complimentary 30-minute insurance consultation', offerDetails: 'Complimentary 30-minute private client insurance consultation tailored for executives', learnMoreUrl: 'https://tdinsurance.com/en/private-client' },
+  { name: 'Waterstone Human Capital', tier: 'PLATINUM', shortDescription: 'Complimentary 30-minute consultation; 5.5% off next executive search (avg. $7K value)', offerDetails: 'Complimentary 30-minute consultation plus 5.5% discount on your next executive search engagement (average value of $7,000)', learnMoreUrl: 'https://waterstonehc.com' },
+  { name: 'Fort Capital Partners', tier: 'PLATINUM', shortDescription: '60-minute consultation on selling, partnering, or raising capital', offerDetails: 'Complimentary 60-minute strategic consultation on selling your business, finding partners, or raising capital', learnMoreUrl: 'https://fortcapitalpartners.com' },
+  { name: 'Softchoice', tier: 'PLATINUM', shortDescription: 'Details Coming Soon', offerDetails: null, learnMoreUrl: 'https://softchoice.com' },
+  { name: 'CAAT Pension Plan', tier: 'PLATINUM', shortDescription: 'Expert-led review of Retirement & Savings Plan ($10K value)', offerDetails: "Expert-led comprehensive review of your organization's Retirement and Savings Plan (valued at $10,000)", learnMoreUrl: 'https://caatpension.ca' },
+  // NATIONAL
+  { name: 'Erickson Coaching International', tier: 'NATIONAL', shortDescription: '30% off L&D services, 10% off coaching ($1,600–$15K value)', offerDetails: '30% off Learning & Development services and 10% off coaching engagements (valued between $1,600 and $15,000)', learnMoreUrl: 'https://erickson.edu' },
+  { name: 'Nicola Wealth', tier: 'NATIONAL', shortDescription: 'Wealth and asset management for high net-worth individuals', offerDetails: 'Personalized wealth and asset management services designed for high net-worth executives and business owners', learnMoreUrl: 'https://nicolawealth.com' },
+  { name: 'MNP LLP', tier: 'NATIONAL', shortDescription: '30-minute consultation on audit, tax planning, or business advisory', offerDetails: 'Complimentary 30-minute consultation on audit, tax planning, or business advisory services', learnMoreUrl: 'https://mnp.ca' },
+  { name: 'Forbes Books', tier: 'NATIONAL', shortDescription: '50% off Forbes Blueprint Publishing ($3K value)', offerDetails: '50% discount on Forbes Blueprint Publishing package (valued at $3,000)', learnMoreUrl: 'https://forbesbooks.com' },
+  { name: 'Purdeep Sangha', tier: 'NATIONAL', shortDescription: 'Free CEO Performance Audit ($25K value)', offerDetails: 'Complimentary CEO Performance Audit — a comprehensive assessment of your leadership effectiveness and business performance (valued at $25,000)', learnMoreUrl: 'https://purdeepsangha.com' },
+  { name: 'Terra Dygital Solutions', tier: 'NATIONAL', shortDescription: 'Free 60-minute IT strategy consultation ($10K value)', offerDetails: 'Complimentary 60-minute IT strategy consultation to align your technology with your business goals (valued at $10,000)', learnMoreUrl: 'https://terradygital.com' },
+  { name: 'The Poirier Group', tier: 'NATIONAL', shortDescription: '1-hour consultation on process improvement and productivity ($5K value)', offerDetails: 'Complimentary 1-hour consultation focused on process improvement and organizational productivity (valued at $5,000)', learnMoreUrl: 'https://thepoiriergroup.com' },
+  { name: 'Medcan Health Management', tier: 'NATIONAL', shortDescription: '15% off Annual Health Assessment and Ongoing Care Memberships', offerDetails: '15% discount on Annual Health Assessment and Ongoing Care Memberships for executive wellness', learnMoreUrl: 'https://medcan.com' },
+  // INNOVATOR
+  { name: 'Yellow Point Equity Partners', tier: 'INNOVATOR', shortDescription: 'Private equity for mid-market business', offerDetails: 'Private equity solutions and strategic partnerships for mid-market businesses', learnMoreUrl: 'https://yellowpointequity.com' },
+  { name: 'Business Transitions Forum', tier: 'INNOVATOR', shortDescription: '50% off all events across Canada and the US', offerDetails: '50% discount on all Business Transitions Forum events held across Canada and the United States', learnMoreUrl: 'https://businesstransitionsforum.com' },
+  { name: 'DP World Canada Inc.', tier: 'INNOVATOR', shortDescription: 'Details Coming Soon', offerDetails: null, learnMoreUrl: 'https://dpworld.com/canada' },
+  { name: 'Empresario Capital Partners', tier: 'INNOVATOR', shortDescription: 'Private equity for mid-market businesses', offerDetails: 'Private equity investments and growth capital for mid-market businesses in Canada', learnMoreUrl: 'https://empresariocapital.com' },
+  { name: 'Global Public Affairs', tier: 'INNOVATOR', shortDescription: 'To be announced', offerDetails: null, learnMoreUrl: 'https://globalpublicaffairs.com' },
+  { name: 'Heart Fit Clinic', tier: 'INNOVATOR', shortDescription: '$200 off Health Assessment or AI Heart Scan for $595 (save $600)', offerDetails: '$200 off comprehensive Health Assessment OR specialized AI Heart Scan for $595 (saving $600)', learnMoreUrl: 'https://heartfitclinic.com' },
+  { name: 'Merchant Growth Ltd.', tier: 'INNOVATOR', shortDescription: '50% off management fees in first year ($1K–$10K value)', offerDetails: '50% off management fees in your first year (valued between $1,000 and $10,000)', learnMoreUrl: 'https://merchantgrowth.com' },
+  { name: 'ProServeIT', tier: 'INNOVATOR', shortDescription: 'AI prototype build in 3 days, 75% off ($4.5K savings); complimentary AI visioning session ($2.5K value)', offerDetails: 'AI prototype built in 3 days at 75% off (saving $4,500) PLUS complimentary AI visioning session (valued at $2,500)', learnMoreUrl: 'https://proserveit.com' },
+  { name: 'Technology Done Well', tier: 'INNOVATOR', shortDescription: 'AI readiness, fractional CIO, governance; up to 50% preferred pricing', offerDetails: 'AI readiness assessment, fractional CIO services, and IT governance with up to 50% preferred pricing for MacKay members', learnMoreUrl: 'https://technologydonewell.com' },
+  { name: 'The CFO Centre', tier: 'INNOVATOR', shortDescription: '60-minute financial strategy consultation ($1K value)', offerDetails: 'Complimentary 60-minute financial strategy consultation with a senior fractional CFO (valued at $1,000)', learnMoreUrl: 'https://cfocentre.com/ca' },
+  { name: 'The NoW of Work', tier: 'INNOVATOR', shortDescription: 'Complimentary 90-minute leadership keynote + AI demo ($1,500 value) or 4-hour AI Intensive at 55% off ($5K value)', offerDetails: 'Choose between a complimentary 90-minute leadership keynote with AI demo (valued at $1,500) OR a 4-hour AI Intensive workshop at 55% off (valued at $5,000)', learnMoreUrl: 'https://thenowofwork.com' },
+  { name: 'Baker Tilly Canada', tier: 'INNOVATOR', shortDescription: 'Complimentary Go-To-Market Analysis up to $10K value, conducted under NDA', offerDetails: 'Complimentary Go-To-Market Analysis (up to $10,000 value) conducted under strict NDA', learnMoreUrl: 'https://bakertilly.ca' },
+];
+
+const defaultQuestions = [
+  'What are the biggest challenges your organization is currently facing?',
+  'What does success look like for your organization in the next 1–3 years?',
+];
+
+export async function POST(request: Request) {
+  const session = await getAdminSession(request);
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const log: string[] = [];
+
+  // Upsert partners
+  const partnerRecords: { id: string }[] = [];
+  for (const p of partners) {
+    const existing = await prisma.partner.findFirst({ where: { name: p.name } });
+    const record = await prisma.partner.upsert({
+      where: { id: existing?.id ?? 'nonexistent' },
+      update: { tier: p.tier, shortDescription: p.shortDescription, offerDetails: p.offerDetails ?? null, learnMoreUrl: p.learnMoreUrl ?? null, active: true },
+      create: { name: p.name, tier: p.tier, shortDescription: p.shortDescription, offerDetails: p.offerDetails ?? null, learnMoreUrl: p.learnMoreUrl ?? null, active: true },
+    });
+    partnerRecords.push({ id: record.id });
+    log.push(`Partner: ${record.name}`);
+  }
+
+  // Upsert template
+  const existingTemplate = await prisma.formTemplate.findUnique({ where: { slug: 'general' } });
+  let template;
+  if (existingTemplate) {
+    template = await prisma.formTemplate.update({
+      where: { slug: 'general' },
+      data: { name: 'Annual Member Survey', active: true, showBookChapter: true, showTeamNomination: true, showPartnerInquiry: true, showChairRecommend: true, showCeoNomination: true, showRenewalIntent: true },
+    });
+    log.push(`Template updated: ${template.name}`);
+  } else {
+    template = await prisma.formTemplate.create({
+      data: { name: 'Annual Member Survey', slug: 'general', active: true, showBookChapter: true, showTeamNomination: true, showPartnerInquiry: true, showChairRecommend: true, showCeoNomination: true, showRenewalIntent: true },
+    });
+    log.push(`Template created: ${template.name}`);
+  }
+
+  // Recreate questions
+  await prisma.templateQuestion.deleteMany({ where: { templateId: template.id } });
+  for (let i = 0; i < defaultQuestions.length; i++) {
+    await prisma.templateQuestion.create({
+      data: { templateId: template.id, questionText: defaultQuestions[i], order: i + 1, required: true },
+    });
+    log.push(`Question ${i + 1}: ${defaultQuestions[i].slice(0, 60)}...`);
+  }
+
+  // Link partners to template
+  for (const p of partnerRecords) {
+    await prisma.templatePartner.upsert({
+      where: { templateId_partnerId: { templateId: template.id, partnerId: p.id } },
+      update: {},
+      create: { templateId: template.id, partnerId: p.id },
+    });
+  }
+  log.push(`Linked ${partnerRecords.length} partners to template`);
+
+  return NextResponse.json({ success: true, log });
+}
